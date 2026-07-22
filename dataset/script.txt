@@ -1,0 +1,563 @@
+DROP DATABASE IF EXISTS mudancas;
+CREATE DATABASE IF NOT EXISTS mudancas CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE mudancas;
+
+-- 1. CRIAÇÃO DAS TABELAS
+CREATE TABLE empresa (
+    id_empresa INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(120) NOT NULL UNIQUE,
+    endereco VARCHAR(200) NOT NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE empresa_telefone (
+    id_empresa INT NOT NULL,
+    telefone VARCHAR(20) NOT NULL,
+    PRIMARY KEY (id_empresa, telefone),
+    FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE cidade (
+    id_cidade INT AUTO_INCREMENT PRIMARY KEY,
+    nome_cidade VARCHAR(100) NOT NULL,
+    estado CHAR(2) NOT NULL,
+    UNIQUE (nome_cidade, estado)
+) ENGINE=InnoDB;
+
+CREATE TABLE servico (
+    nome_servico VARCHAR(80) PRIMARY KEY,
+    tipo_especializacao VARCHAR(12) NOT NULL DEFAULT 'NENHUM'
+        CHECK (tipo_especializacao IN ('GUINDASTE', 'TRANSPORTE', 'NENHUM'))
+) ENGINE=InnoDB;
+
+CREATE TABLE guindaste (
+    nome_servico VARCHAR(80) PRIMARY KEY,
+    tamanho_base VARCHAR(30) NOT NULL,
+    altura DECIMAL(6,2) NOT NULL,
+    bonus_aumento DECIMAL(5,2) NOT NULL,
+    FOREIGN KEY (nome_servico) REFERENCES servico(nome_servico) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE transporte (
+    nome_servico VARCHAR(80) PRIMARY KEY,
+    FOREIGN KEY (nome_servico) REFERENCES servico(nome_servico) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE transporte_acrescimo (
+    nome_servico VARCHAR(80) NOT NULL,
+    peso_limite DECIMAL(10,2) NOT NULL,
+    percentual_acrescimo DECIMAL(5,2) NOT NULL,
+    PRIMARY KEY (nome_servico, peso_limite),
+    FOREIGN KEY (nome_servico) REFERENCES transporte(nome_servico) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE oferecem (
+    id_empresa INT NOT NULL,
+    id_cidade INT NOT NULL,
+    nome_servico VARCHAR(80) NOT NULL,
+    preco_hora DECIMAL(10,2) NOT NULL CHECK (preco_hora > 0),
+    PRIMARY KEY (id_empresa, id_cidade, nome_servico),
+    FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa) ON DELETE CASCADE,
+    FOREIGN KEY (id_cidade) REFERENCES cidade(id_cidade) ON DELETE CASCADE,
+    FOREIGN KEY (nome_servico) REFERENCES servico(nome_servico) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE cliente (
+    codigo_cliente INT AUTO_INCREMENT PRIMARY KEY,
+    cpf CHAR(11) NOT NULL UNIQUE,
+    rg VARCHAR(20) NOT NULL UNIQUE,
+    nome_completo VARCHAR(150) NOT NULL,
+    endereco VARCHAR(200) NOT NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE cliente_telefone (
+    codigo_cliente INT NOT NULL,
+    telefone VARCHAR(20) NOT NULL,
+    PRIMARY KEY (codigo_cliente, telefone),
+    FOREIGN KEY (codigo_cliente) REFERENCES cliente(codigo_cliente) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE funcionario (
+    cpf_func CHAR(11) PRIMARY KEY,
+    rg_func VARCHAR(20) NOT NULL UNIQUE,
+    nome_completo VARCHAR(150) NOT NULL,
+    endereco VARCHAR(200) NOT NULL,
+    tipo_func VARCHAR(30) NOT NULL
+        CHECK (tipo_func IN ('MOTORISTA', 'OPERADOR_GUINCHO', 'GERENTE_MUDANCAS', 'AJUDANTE')),
+    salario DECIMAL(10,2) NOT NULL CHECK (salario > 0)
+) ENGINE=InnoDB;
+
+CREATE TABLE funcionario_telefone (
+    cpf_func CHAR(11) NOT NULL,
+    telefone VARCHAR(20) NOT NULL,
+    PRIMARY KEY (cpf_func, telefone),
+    FOREIGN KEY (cpf_func) REFERENCES funcionario(cpf_func) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE funcionario_empresa (
+    cpf_func CHAR(11) NOT NULL,
+    id_empresa INT NOT NULL,
+    data_inicio DATE NOT NULL,
+    data_fim DATE,
+    telefone_empresa VARCHAR(20),
+    PRIMARY KEY (cpf_func, id_empresa, data_inicio),
+    FOREIGN KEY (cpf_func) REFERENCES funcionario(cpf_func) ON DELETE CASCADE,
+    FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa) ON DELETE CASCADE,
+    CHECK (data_fim IS NULL OR data_fim >= data_inicio)
+) ENGINE=InnoDB;
+
+CREATE TABLE pedido (
+    codigo_pedido INT AUTO_INCREMENT PRIMARY KEY,
+    id_empresa INT NOT NULL,
+    codigo_cliente INT NOT NULL,
+    id_cidade_origem INT,
+    endereco_origem VARCHAR(200),
+    id_cidade_destino INT,
+    endereco_destino VARCHAR(200),
+    data_solicitacao DATE NOT NULL,
+    data_resolucao DATE,
+    situacao VARCHAR(10) NOT NULL DEFAULT 'PENDENTE'
+        CHECK (situacao IN ('PENDENTE', 'ACEITA', 'REJEITADA')),
+    preco_total DECIMAL(12,2) NOT NULL DEFAULT 0,
+    FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa),
+    FOREIGN KEY (codigo_cliente) REFERENCES cliente(codigo_cliente),
+    FOREIGN KEY (id_cidade_origem) REFERENCES cidade(id_cidade),
+    FOREIGN KEY (id_cidade_destino) REFERENCES cidade(id_cidade),
+    CHECK (data_resolucao IS NULL OR data_resolucao >= data_solicitacao)
+) ENGINE=InnoDB;
+
+CREATE TABLE pedido_servico (
+    codigo_pedido INT NOT NULL,
+    nome_servico VARCHAR(80) NOT NULL,
+    tempo_duracao DECIMAL(6,2) NOT NULL CHECK (tempo_duracao > 0),
+    data_fim DATE,
+    peso_carga DECIMAL(10,2) CHECK (peso_carga IS NULL OR peso_carga > 0),
+    preco DECIMAL(12,2) NOT NULL DEFAULT 0,
+    PRIMARY KEY (codigo_pedido, nome_servico),
+    FOREIGN KEY (codigo_pedido) REFERENCES pedido(codigo_pedido) ON DELETE CASCADE,
+    FOREIGN KEY (nome_servico) REFERENCES servico(nome_servico)
+) ENGINE=InnoDB;
+
+CREATE TABLE pedido_servico_funcionario (
+    codigo_pedido INT NOT NULL,
+    nome_servico VARCHAR(80) NOT NULL,
+    cpf_func CHAR(11) NOT NULL,
+    PRIMARY KEY (codigo_pedido, nome_servico, cpf_func),
+    FOREIGN KEY (cpf_func) REFERENCES funcionario(cpf_func),
+    FOREIGN KEY (codigo_pedido, nome_servico)
+        REFERENCES pedido_servico(codigo_pedido, nome_servico) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE INDEX idx_pedido_empresa ON pedido(id_empresa);
+CREATE INDEX idx_pedido_cliente ON pedido(codigo_cliente);
+CREATE INDEX idx_pedido_cidade_origem ON pedido(id_cidade_origem);
+CREATE INDEX idx_pedido_servico_servico ON pedido_servico(nome_servico);
+CREATE INDEX idx_oferecem_cidade ON oferecem(id_cidade);
+
+-- 2. RESTRIÇÕES DE INTEGRIDADE (TRIGGERS)
+DELIMITER $$
+
+CREATE TRIGGER trg_marca_guindaste
+AFTER INSERT ON guindaste
+FOR EACH ROW
+BEGIN
+    DECLARE v_tipo_atual VARCHAR(12);
+    SELECT tipo_especializacao INTO v_tipo_atual FROM servico WHERE nome_servico = NEW.nome_servico;
+    IF v_tipo_atual = 'TRANSPORTE' THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Servico ja e do tipo TRANSPORTE; hierarquia e disjunta';
+    END IF;
+    UPDATE servico SET tipo_especializacao = 'GUINDASTE' WHERE nome_servico = NEW.nome_servico;
+END$$
+
+CREATE TRIGGER trg_marca_transporte
+AFTER INSERT ON transporte
+FOR EACH ROW
+BEGIN
+    DECLARE v_tipo_atual VARCHAR(12);
+    SELECT tipo_especializacao INTO v_tipo_atual FROM servico WHERE nome_servico = NEW.nome_servico;
+    IF v_tipo_atual = 'GUINDASTE' THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Servico ja e do tipo GUINDASTE; hierarquia e disjunta';
+    END IF;
+    UPDATE servico SET tipo_especializacao = 'TRANSPORTE' WHERE nome_servico = NEW.nome_servico;
+END$$
+
+CREATE TRIGGER trg_desmarca_guindaste
+AFTER DELETE ON guindaste
+FOR EACH ROW
+BEGIN
+    UPDATE servico SET tipo_especializacao = 'NENHUM' WHERE nome_servico = OLD.nome_servico;
+END$$
+
+CREATE TRIGGER trg_desmarca_transporte
+AFTER DELETE ON transporte
+FOR EACH ROW
+BEGIN
+    UPDATE servico SET tipo_especializacao = 'NENHUM' WHERE nome_servico = OLD.nome_servico;
+END$$
+
+CREATE TRIGGER trg_calcula_preco_ins
+BEFORE INSERT ON pedido_servico
+FOR EACH ROW
+BEGIN
+    DECLARE v_id_empresa INT;
+    DECLARE v_id_cidade INT;
+    DECLARE v_preco_hora DECIMAL(10,2);
+    DECLARE v_tipo VARCHAR(12);
+    DECLARE v_bonus DECIMAL(5,2);
+    DECLARE v_percentual DECIMAL(5,2);
+    DECLARE v_base DECIMAL(12,4);
+
+    SELECT id_empresa, COALESCE(id_cidade_origem, id_cidade_destino)
+      INTO v_id_empresa, v_id_cidade
+      FROM pedido
+      WHERE codigo_pedido = NEW.codigo_pedido;
+
+    IF v_id_cidade IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Pedido sem cidade de origem/destino definida: impossivel calcular preco';
+    END IF;
+
+    SELECT preco_hora INTO v_preco_hora
+      FROM oferecem
+      WHERE id_empresa = v_id_empresa
+        AND id_cidade = v_id_cidade
+        AND nome_servico = NEW.nome_servico;
+
+    IF v_preco_hora IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'A empresa nao oferece este servico na cidade informada no pedido';
+    END IF;
+
+    SET v_base = v_preco_hora * NEW.tempo_duracao;
+
+    SELECT tipo_especializacao INTO v_tipo FROM servico WHERE nome_servico = NEW.nome_servico;
+
+    IF v_tipo = 'TRANSPORTE' AND NEW.peso_carga IS NOT NULL THEN
+        SELECT percentual_acrescimo INTO v_percentual
+          FROM transporte_acrescimo
+          WHERE nome_servico = NEW.nome_servico
+            AND peso_limite <= NEW.peso_carga
+          ORDER BY peso_limite DESC
+          LIMIT 1;
+        IF v_percentual IS NOT NULL THEN
+            SET v_base = v_base * (1 + v_percentual / 100.0);
+        END IF;
+    ELSEIF v_tipo = 'GUINDASTE' THEN
+        SELECT bonus_aumento INTO v_bonus FROM guindaste WHERE nome_servico = NEW.nome_servico;
+        IF v_bonus IS NOT NULL THEN
+            SET v_base = v_base * (1 + v_bonus / 100.0);
+        END IF;
+    END IF;
+
+    SET NEW.preco = ROUND(v_base, 2);
+END$$
+
+CREATE TRIGGER trg_calcula_preco_upd
+BEFORE UPDATE ON pedido_servico
+FOR EACH ROW
+BEGIN
+    DECLARE v_id_empresa INT;
+    DECLARE v_id_cidade INT;
+    DECLARE v_preco_hora DECIMAL(10,2);
+    DECLARE v_tipo VARCHAR(12);
+    DECLARE v_bonus DECIMAL(5,2);
+    DECLARE v_percentual DECIMAL(5,2);
+    DECLARE v_base DECIMAL(12,4);
+
+    SELECT id_empresa, COALESCE(id_cidade_origem, id_cidade_destino)
+      INTO v_id_empresa, v_id_cidade
+      FROM pedido
+      WHERE codigo_pedido = NEW.codigo_pedido;
+
+    IF v_id_cidade IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Pedido sem cidade de origem/destino definida: impossivel calcular preco';
+    END IF;
+
+    SELECT preco_hora INTO v_preco_hora
+      FROM oferecem
+      WHERE id_empresa = v_id_empresa
+        AND id_cidade = v_id_cidade
+        AND nome_servico = NEW.nome_servico;
+
+    IF v_preco_hora IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'A empresa nao oferece este servico na cidade informada no pedido';
+    END IF;
+
+    SET v_base = v_preco_hora * NEW.tempo_duracao;
+
+    SELECT tipo_especializacao INTO v_tipo FROM servico WHERE nome_servico = NEW.nome_servico;
+
+    IF v_tipo = 'TRANSPORTE' AND NEW.peso_carga IS NOT NULL THEN
+        SELECT percentual_acrescimo INTO v_percentual
+          FROM transporte_acrescimo
+          WHERE nome_servico = NEW.nome_servico
+            AND peso_limite <= NEW.peso_carga
+          ORDER BY peso_limite DESC
+          LIMIT 1;
+        IF v_percentual IS NOT NULL THEN
+            SET v_base = v_base * (1 + v_percentual / 100.0);
+        END IF;
+    ELSEIF v_tipo = 'GUINDASTE' THEN
+        SELECT bonus_aumento INTO v_bonus FROM guindaste WHERE nome_servico = NEW.nome_servico;
+        IF v_bonus IS NOT NULL THEN
+            SET v_base = v_base * (1 + v_bonus / 100.0);
+        END IF;
+    END IF;
+
+    SET NEW.preco = ROUND(v_base, 2);
+END$$
+
+CREATE TRIGGER trg_atualiza_total_ins
+AFTER INSERT ON pedido_servico
+FOR EACH ROW
+BEGIN
+    UPDATE pedido
+       SET preco_total = COALESCE(
+             (SELECT SUM(preco) FROM pedido_servico WHERE codigo_pedido = NEW.codigo_pedido), 0)
+     WHERE codigo_pedido = NEW.codigo_pedido;
+END$$
+
+CREATE TRIGGER trg_atualiza_total_upd
+AFTER UPDATE ON pedido_servico
+FOR EACH ROW
+BEGIN
+    UPDATE pedido
+       SET preco_total = COALESCE(
+             (SELECT SUM(preco) FROM pedido_servico WHERE codigo_pedido = NEW.codigo_pedido), 0)
+     WHERE codigo_pedido = NEW.codigo_pedido;
+END$$
+
+CREATE TRIGGER trg_atualiza_total_del
+AFTER DELETE ON pedido_servico
+FOR EACH ROW
+BEGIN
+    UPDATE pedido
+       SET preco_total = COALESCE(
+             (SELECT SUM(preco) FROM pedido_servico WHERE codigo_pedido = OLD.codigo_pedido), 0)
+     WHERE codigo_pedido = OLD.codigo_pedido;
+END$$
+
+CREATE TRIGGER trg_valida_cidade_ins
+BEFORE INSERT ON pedido
+FOR EACH ROW
+BEGIN
+    IF NEW.id_cidade_origem IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM oferecem WHERE id_empresa = NEW.id_empresa AND id_cidade = NEW.id_cidade_origem
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'A empresa nao presta servico na cidade de origem informada';
+    END IF;
+
+    IF NEW.id_cidade_destino IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM oferecem WHERE id_empresa = NEW.id_empresa AND id_cidade = NEW.id_cidade_destino
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'A empresa nao presta servico na cidade de destino informada';
+    END IF;
+END$$
+
+CREATE TRIGGER trg_valida_cidade_upd
+BEFORE UPDATE ON pedido
+FOR EACH ROW
+BEGIN
+    IF NEW.id_cidade_origem IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM oferecem WHERE id_empresa = NEW.id_empresa AND id_cidade = NEW.id_cidade_origem
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'A empresa nao presta servico na cidade de origem informada';
+    END IF;
+
+    IF NEW.id_cidade_destino IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM oferecem WHERE id_empresa = NEW.id_empresa AND id_cidade = NEW.id_cidade_destino
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'A empresa nao presta servico na cidade de destino informada';
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 3. POPULAÇÃO DAS TABELAS
+INSERT INTO cidade (id_cidade, nome_cidade, estado) VALUES
+(1, 'São Paulo', 'SP'),
+(2, 'Rio de Janeiro', 'RJ'),
+(3, 'Campinas', 'SP'),
+(4, 'Belo Horizonte', 'MG'),
+(5, 'Curitiba', 'PR'),
+(6, 'Santos', 'SP');
+
+INSERT INTO empresa (id_empresa, nome, endereco) VALUES
+(1, 'MudaFácil Transportes', 'Av. Paulista, 1000 - São Paulo/SP'),
+(2, 'RápidaMudança Ltda', 'Rua das Laranjeiras, 200 - Rio de Janeiro/RJ'),
+(3, 'TransMudança Brasil', 'Av. Norte-Sul, 300 - Campinas/SP'),
+(4, 'Guincho & Cia Mudanças', 'Rua Guaicurus, 45 - Belo Horizonte/MG'),
+(5, 'Mudanças Express', 'Av. Sete de Setembro, 500 - Curitiba/PR');
+
+INSERT INTO empresa_telefone VALUES
+(1,'(11) 3333-1111'), (1,'(11) 98888-1111'),
+(2,'(21) 3333-2222'),
+(3,'(19) 3333-3333'),
+(4,'(31) 3333-4444'),
+(5,'(41) 3333-5555');
+
+INSERT INTO servico (nome_servico) VALUES
+('Transporte Padrão'),
+('Transporte Pesado'),
+('Guindaste Pequeno'),
+('Guindaste Grande'),
+('Embalagem'),
+('Desmontagem e Montagem de Móveis');
+
+INSERT INTO transporte (nome_servico) VALUES
+('Transporte Padrão'),
+('Transporte Pesado');
+
+INSERT INTO transporte_acrescimo (nome_servico, peso_limite, percentual_acrescimo) VALUES
+('Transporte Padrão', 500, 10),
+('Transporte Padrão', 750, 15),
+('Transporte Pesado', 1000, 8),
+('Transporte Pesado', 2000, 12);
+
+INSERT INTO guindaste (nome_servico, tamanho_base, altura, bonus_aumento) VALUES
+('Guindaste Pequeno', '2x2m', 15, 5),
+('Guindaste Grande', '4x4m', 40, 12);
+
+INSERT INTO oferecem (id_empresa, id_cidade, nome_servico, preco_hora) VALUES
+(1, 1, 'Transporte Padrão', 120),
+(1, 1, 'Embalagem', 60),
+(1, 1, 'Desmontagem e Montagem de Móveis', 80),
+(1, 3, 'Transporte Padrão', 110),
+(1, 3, 'Embalagem', 55),
+(1, 6, 'Transporte Padrão', 115),
+(1, 6, 'Guindaste Pequeno', 200),
+(1, 1, 'Guindaste Pequeno', 190),
+(2, 2, 'Transporte Padrão', 130),
+(2, 2, 'Transporte Pesado', 180),
+(2, 2, 'Embalagem', 65),
+(2, 1, 'Transporte Padrão', 125),
+(2, 1, 'Desmontagem e Montagem de Móveis', 85),
+(2, 2, 'Desmontagem e Montagem de Móveis', 88),
+(3, 3, 'Transporte Pesado', 190),
+(3, 3, 'Guindaste Grande', 350),
+(3, 3, 'Transporte Padrão', 115),
+(3, 1, 'Transporte Padrão', 118),
+(3, 4, 'Transporte Padrão', 100),
+(3, 4, 'Embalagem', 50),
+(4, 4, 'Guindaste Pequeno', 210),
+(4, 4, 'Guindaste Grande', 360),
+(4, 4, 'Transporte Padrão', 105),
+(4, 5, 'Guindaste Grande', 340),
+(4, 5, 'Transporte Pesado', 175),
+(5, 5, 'Transporte Padrão', 108),
+(5, 5, 'Embalagem', 52),
+(5, 5, 'Desmontagem e Montagem de Móveis', 78),
+(5, 2, 'Transporte Padrão', 128),
+(5, 2, 'Transporte Pesado', 185),
+(5, 2, 'Desmontagem e Montagem de Móveis', 90);
+
+INSERT INTO cliente (codigo_cliente, cpf, rg, nome_completo, endereco) VALUES
+(1, '11122233344', 'MG1111111', 'Ana Souza Lima', 'Rua A, 10 - São Paulo/SP'),
+(2, '22233344455', 'MG2222222', 'Bruno Carvalho', 'Rua B, 20 - Rio de Janeiro/RJ'),
+(3, '33344455566', 'MG3333333', 'Carla Mendes', 'Rua C, 30 - Campinas/SP'),
+(4, '44455566677', 'MG4444444', 'Diego Ferreira', 'Rua D, 40 - Belo Horizonte/MG'),
+(5, '55566677788', 'MG5555555', 'Elisa Martins', 'Rua E, 50 - Curitiba/PR'),
+(6, '66677788899', 'MG6666666', 'Fábio Nogueira', 'Rua F, 60 - Santos/SP'),
+(7, '77788899900', 'MG7777777', 'Gabriela Rocha', 'Rua G, 70 - São Paulo/SP'),
+(8, '88899900011', 'MG8888888', 'Hugo Teixeira', 'Rua H, 80 - Rio de Janeiro/RJ');
+
+INSERT INTO cliente_telefone VALUES
+(1,'(11) 99999-0001'), (2,'(21) 99999-0002'), (3,'(19) 99999-0003'),
+(4,'(31) 99999-0004'), (5,'(41) 99999-0005'), (6,'(13) 99999-0006'),
+(7,'(11) 99999-0007'), (8,'(21) 99999-0008');
+
+INSERT INTO funcionario (cpf_func, rg_func, nome_completo, endereco, tipo_func, salario) VALUES
+('10101010101', 'RG100001', 'João Pedro Alves', 'Rua J, 1 - São Paulo/SP', 'MOTORISTA', 2800),
+('20202020202', 'RG100002', 'Marcos Vinícius', 'Rua K, 2 - São Paulo/SP', 'OPERADOR_GUINCHO', 3200),
+('30303030303', 'RG100003', 'Renata Duarte', 'Rua L, 3 - Rio de Janeiro/RJ', 'GERENTE_MUDANCAS', 5500),
+('40404040404', 'RG100004', 'Felipe Araújo', 'Rua M, 4 - Campinas/SP', 'AJUDANTE', 2000),
+('50505050505', 'RG100005', 'Camila Barbosa', 'Rua N, 5 - Belo Horizonte/MG', 'MOTORISTA', 2750),
+('60606060606', 'RG100006', 'Rodrigo Lima', 'Rua O, 6 - Curitiba/PR', 'OPERADOR_GUINCHO', 3300),
+('70707070707', 'RG100007', 'Patrícia Gomes', 'Rua P, 7 - São Paulo/SP', 'AJUDANTE', 1950),
+('80808080808', 'RG100008', 'Vitor Hugo Ramos', 'Rua Q, 8 - Rio de Janeiro/RJ', 'GERENTE_MUDANCAS', 5300);
+
+INSERT INTO funcionario_telefone VALUES
+('10101010101','(11) 98888-0001'), ('20202020202','(11) 98888-0002'),
+('30303030303','(21) 98888-0003'), ('40404040404','(19) 98888-0004'),
+('50505050505','(31) 98888-0005'), ('60606060606','(41) 98888-0006'),
+('70707070707','(11) 98888-0007'), ('80808080808','(21) 98888-0008');
+
+INSERT INTO funcionario_empresa (cpf_func, id_empresa, data_inicio, data_fim, telefone_empresa) VALUES
+('10101010101', 1, '2024-01-10', NULL, '(11) 3333-1111'),
+('20202020202', 1, '2024-02-01', NULL, '(11) 3333-1111'),
+('20202020202', 3, '2025-06-01', NULL, '(19) 3333-3333'),
+('30303030303', 2, '2023-05-15', NULL, '(21) 3333-2222'),
+('40404040404', 3, '2024-03-01', NULL, '(19) 3333-3333'),
+('50505050505', 4, '2024-01-20', NULL, '(31) 3333-4444'),
+('60606060606', 4, '2024-04-10', NULL, '(31) 3333-4444'),
+('60606060606', 5, '2025-01-05', NULL, '(41) 3333-5555'),
+('70707070707', 1, '2024-06-01', NULL, '(11) 3333-1111'),
+('80808080808', 5, '2023-09-01', NULL, '(41) 3333-5555');
+
+INSERT INTO pedido (codigo_pedido, id_empresa, codigo_cliente, id_cidade_origem, endereco_origem, id_cidade_destino, endereco_destino, data_solicitacao, data_resolucao, situacao, preco_total) VALUES
+(1, 1, 1, 1, 'Rua A, 10 - SP', 3, 'Rua Z, 99 - Campinas', '2026-01-05', '2026-01-06', 'ACEITA', 0),
+(2, 1, 7, 1, 'Rua G, 70 - SP', 6, 'Rua W, 1 - Santos', '2026-01-10', '2026-01-11', 'ACEITA', 0),
+(3, 1, 6, 6, 'Rua F, 60 - Santos', 1, 'Av. Paulista, 500 - SP', '2026-02-02', NULL, 'PENDENTE', 0),
+(4, 2, 2, 2, 'Rua B, 20 - RJ', 1, 'Rua A, 10 - SP', '2026-01-12', '2026-01-13', 'ACEITA', 0),
+(5, 2, 8, 2, 'Rua H, 80 - RJ', 2, 'Rua H, 81 - RJ', '2026-01-20', '2026-01-21', 'ACEITA', 0),
+(6, 2, 1, 1, 'Rua A, 10 - SP', 2, 'Rua B, 20 - RJ', '2026-02-15', NULL, 'REJEITADA', 0),
+(7, 3, 3, 3, 'Rua C, 30 - Campinas', 1, 'Rua A, 10 - SP', '2026-01-08', '2026-01-09', 'ACEITA', 0),
+(8, 3, 3, 3, 'Rua C, 31 - Campinas', 4, 'Rua D, 40 - BH', '2026-02-01', '2026-02-03', 'ACEITA', 0),
+(9, 3, 4, 4, 'Rua D, 40 - BH', 3, 'Rua C, 30 - Campinas', '2026-02-20', NULL, 'PENDENTE', 0),
+(10, 4, 4, 4, 'Rua D, 40 - BH', 4, 'Rua D, 41 - BH', '2026-01-15', '2026-01-17', 'ACEITA', 0),
+(11, 4, 4, 4, 'Rua D, 42 - BH', 5, 'Rua E, 50 - Curitiba', '2026-02-05', '2026-02-08', 'ACEITA', 0),
+(12, 4, 5, 5, 'Rua E, 50 - Curitiba', 4, 'Rua D, 40 - BH', '2026-01-25', '2026-01-27', 'ACEITA', 0),
+(13, 5, 5, 5, 'Rua E, 50 - Curitiba', 5, 'Rua E, 51 - Curitiba', '2026-01-18', '2026-01-19', 'ACEITA', 0),
+(14, 5, 8, 2, 'Rua H, 80 - RJ', 5, 'Rua E, 50 - Curitiba', '2026-02-10', NULL, 'PENDENTE', 0),
+(15, 5, 2, 2, 'Rua B, 20 - RJ', 2, 'Rua B, 21 - RJ', '2026-01-30', '2026-01-31', 'ACEITA', 0);
+
+INSERT INTO pedido_servico (codigo_pedido, nome_servico, tempo_duracao, data_fim, peso_carga) VALUES
+(1, 'Transporte Padrão', 4, '2026-01-06', 600),
+(1, 'Embalagem', 3, '2026-01-06', NULL),
+(2, 'Transporte Padrão', 5, '2026-01-11', 300),
+(2, 'Guindaste Pequeno', 2, '2026-01-11', NULL),
+(3, 'Transporte Padrão', 4, NULL, 200),
+(4, 'Transporte Padrão', 6, '2026-01-13', 800),
+(4, 'Desmontagem e Montagem de Móveis', 3, '2026-01-13', NULL),
+(5, 'Embalagem', 2, '2026-01-21', NULL),
+(5, 'Transporte Padrão', 2, '2026-01-21', 100),
+(6, 'Transporte Padrão', 5, NULL, 400),
+(7, 'Transporte Padrão', 4, '2026-01-09', 550),
+(8, 'Transporte Pesado', 6, '2026-02-03', 1500),
+(9, 'Transporte Padrão', 3, NULL, 300),
+(10, 'Guindaste Pequeno', 3, '2026-01-17', NULL),
+(10, 'Transporte Padrão', 2, '2026-01-17', 150),
+(11, 'Guindaste Grande', 5, '2026-02-08', NULL),
+(12, 'Transporte Pesado', 7, '2026-01-27', 2200),
+(13, 'Transporte Padrão', 3, '2026-01-19', 250),
+(13, 'Embalagem', 2, '2026-01-19', NULL),
+(14, 'Transporte Pesado', 5, NULL, 900),
+(15, 'Desmontagem e Montagem de Móveis', 4, '2026-01-31', NULL),
+(15, 'Transporte Padrão', 2, '2026-01-31', 100);
+
+INSERT INTO pedido_servico_funcionario (codigo_pedido, nome_servico, cpf_func) VALUES
+(1, 'Transporte Padrão', '10101010101'),
+(1, 'Embalagem', '70707070707'),
+(2, 'Transporte Padrão', '10101010101'),
+(2, 'Guindaste Pequeno', '20202020202'),
+(4, 'Transporte Padrão', '30303030303'),
+(4, 'Desmontagem e Montagem de Móveis', '30303030303'),
+(5, 'Embalagem', '30303030303'),
+(5, 'Transporte Padrão', '30303030303'),
+(7, 'Transporte Padrão', '40404040404'),
+(8, 'Transporte Pesado', '40404040404'),
+(10, 'Guindaste Pequeno', '50505050505'),
+(10, 'Transporte Padrão', '50505050505'),
+(11, 'Guindaste Grande', '60606060606'),
+(12, 'Transporte Pesado', '50505050505'),
+(13, 'Transporte Padrão', '60606060606'),
+(13, 'Embalagem', '80808080808'),
+(15, 'Desmontagem e Montagem de Móveis', '80808080808'),
+(15, 'Transporte Padrão', '80808080808');

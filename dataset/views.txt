@@ -1,0 +1,51 @@
+USE mudancas;
+
+-- 1. Faturamento / Valor Investido por Cidade (Geral e Top 5)
+CREATE OR REPLACE VIEW view_faturamento_cidade AS
+SELECT 
+    c.id_cidade AS IdCidade,
+    c.nome_cidade AS NomeCidade,
+    c.estado AS Estado,
+    COALESCE(SUM(ps.preco), 0) AS ValorInvestido
+FROM cidade c
+LEFT JOIN pedido p ON c.id_cidade = p.id_cidade_origem
+LEFT JOIN pedido_servico ps ON p.codigo_pedido = ps.codigo_pedido
+GROUP BY c.id_cidade, c.nome_cidade, c.estado
+ORDER BY ValorInvestido DESC;
+
+-- 2. Número de Serviços por Cidade (Geral e Top 5)
+CREATE OR REPLACE VIEW view_servicos_cidade AS
+SELECT 
+    c.id_cidade AS IdCidade,
+    c.nome_cidade AS NomeCidade,
+    c.estado AS Estado,
+    COUNT(ps.codigo_pedido) AS TotalServicos
+FROM cidade c
+LEFT JOIN pedido p ON c.id_cidade = p.id_cidade_origem
+LEFT JOIN pedido_servico ps ON p.codigo_pedido = ps.codigo_pedido
+GROUP BY c.id_cidade, c.nome_cidade, c.estado
+ORDER BY TotalServicos DESC;
+
+-- 3. Detalhamento de Serviços por Cidade (para o Histograma de Serviços x Cidade)
+CREATE OR REPLACE VIEW view_histograma_servicos_cidade AS
+SELECT 
+    c.nome_cidade AS NomeCidade,
+    s.nome_servico AS NomeServico,
+    COUNT(ps.codigo_pedido) AS QuantidadeServicos
+FROM cidade c
+CROSS JOIN servico s
+LEFT JOIN pedido p ON c.id_cidade = p.id_cidade_origem
+LEFT JOIN pedido_servico ps ON p.codigo_pedido = ps.codigo_pedido AND ps.nome_servico = s.nome_servico
+GROUP BY c.nome_cidade, s.nome_servico;
+
+-- 4. Ranking de Empresas (por Serviços e por Valores Ganhos)
+CREATE OR REPLACE VIEW view_ranking_empresas AS
+SELECT 
+    e.id_empresa AS IdEmpresa,
+    e.nome AS NomeEmpresa,
+    COUNT(ps.codigo_pedido) AS TotalServicosSolicitados,
+    COALESCE(SUM(ps.preco), 0) AS ValoresGanhos
+FROM empresa e
+LEFT JOIN pedido p ON e.id_empresa = p.id_empresa
+LEFT JOIN pedido_servico ps ON p.codigo_pedido = ps.codigo_pedido
+GROUP BY e.id_empresa, e.nome;
