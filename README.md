@@ -58,10 +58,10 @@ Abra o arquivo backend/appsettings.json em seu editor de texto e insira a sua se
 
 ### Passo 3: Compilar e Executar
 Ainda dentro da pasta backend, execute os comandos no terminal:
-1. Compila e verifica se há erros no projeto
+1. Compila e verifica se há erros no projeto: 
 dotnet build
 
-2. Executa a API
+2. Executa a API: 
 dotnet run
 
 Abertura Automática: Ao executar dotnet run, o navegador abrirá automaticamente a interface do Swagger em http://localhost:5065
