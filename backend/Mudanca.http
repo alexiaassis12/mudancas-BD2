@@ -1,0 +1,6 @@
+@Mudanca_HostAddress = http://localhost:5065
+
+GET {{Mudanca_HostAddress}}/Program/
+Accept: application/json
+
+###
