@@ -10,6 +10,15 @@ const endpointMap = {
   pedidos: 'Pedido',
 }
 
+const deleteKeyMap = {
+  cidades: 'idCidade',
+  empresas: 'idEmpresa',
+  clientes: 'idCliente',
+  funcionarios: 'cpf',
+  servicos: 'nomeServico',
+  pedidos: 'idPedido',
+}
+
 const formatLabel = (key) => {
   if (!key) return ''
   return key
@@ -25,6 +34,33 @@ function TableSection({ sectionId, title, description }) {
   const [error, setError] = useState(null)
 
   const API_BASE = 'http://localhost:5065'
+
+  const getDeleteValue = (row) => {
+    const candidateKeys = [deleteKeyMap[sectionId], 'id', 'id_cidade', 'id_empresa', 'id_cliente', 'id_pedido', 'id_funcionario', 'id_servico', 'cpf', 'nomeServico', 'nome_servico']
+
+    return candidateKeys
+      .map((key) => row?.[key])
+      .find((value) => value !== undefined && value !== null && value !== '')
+  }
+
+  const handleDeleteRow = async (row) => {
+    const endpoint = endpointMap[sectionId]
+    const value = getDeleteValue(row)
+
+    if (!endpoint || !value) {
+      throw new Error('Não foi possível identificar o item para exclusão')
+    }
+
+    const res = await fetch(`${API_BASE}/api/${endpoint}/${encodeURIComponent(value)}`, {
+      method: 'DELETE',
+    })
+
+    if (!res.ok) {
+      throw new Error(`Falha ao excluir item (${res.status})`)
+    }
+
+    setRows((prevRows) => prevRows.filter((item) => item !== row))
+  }
 
   useEffect(() => {
     async function load() {
@@ -81,7 +117,7 @@ function TableSection({ sectionId, title, description }) {
       ) : error ? (
         <p style={{ color: 'red' }}>Erro: {error}</p>
       ) : (
-        <DataTable columns={columns} rows={rows} />
+        <DataTable columns={columns} rows={rows} onDelete={handleDeleteRow} />
       )}
     </section>
   )
