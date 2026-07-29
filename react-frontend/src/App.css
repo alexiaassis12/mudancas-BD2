@@ -30,7 +30,8 @@ button {
 .app-shell {
   display: grid;
   grid-template-columns: 260px 1fr;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .sidebar {
@@ -40,6 +41,10 @@ button {
   display: flex;
   flex-direction: column;
   gap: 36px;
+  height: 100vh; 
+  overflow-y: auto; 
+  position: sticky; 
+  top: 0;
 }
 
 .sidebar-brand {
@@ -106,7 +111,8 @@ button {
 
 .app-content {
   padding: 32px;
-  min-height: 100vh;
+  height: 100vh; 
+  overflow-y: auto;
   background: var(--bg-light);
 }
 
