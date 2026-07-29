@@ -1,6 +1,7 @@
 import React from 'react'
 import DataTable from '../DataTable/DataTable'
 import CreateRowPanel from './CreateRowPanel'
+import PedidoServicoPanel from './PedidoServicoPanel' // ✅ Importar
 import { useTableSectionData } from './useTableSectionData'
 import './TableSection.css'
 
@@ -19,6 +20,11 @@ function TableSection({ sectionId, title, description }) {
     onCreate,
     onDelete,
     onSave,
+    // ✅ Novos valores
+    isPedidos,
+    addingServico,
+    servicoError,
+    onAddServico,
   } = useTableSectionData(sectionId)
 
   return (
@@ -42,6 +48,15 @@ function TableSection({ sectionId, title, description }) {
         />
       )}
 
+      {/* ✅ Painel para adicionar serviços ao pedido */}
+      {isPedidos && (
+        <PedidoServicoPanel
+          onAddServico={onAddServico}
+          loading={addingServico}
+        />
+      )}
+
+      {servicoError && <p className="edit-row-error">{servicoError}</p>}
       {editError && <p className="edit-row-error">{editError}</p>}
 
       {loading ? (

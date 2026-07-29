@@ -45,6 +45,14 @@ export const createFieldMap = {
   ],
 }
 
+export const pedidoServicoFields = [
+  { key: 'codigoPedido', label: 'Código do Pedido', type: 'number', required: true, placeholder: '1' },
+  { key: 'nomeServico', label: 'Nome do Serviço', type: 'text', required: true, placeholder: 'Transporte Padrão' },
+  { key: 'tempoDuracao', label: 'Tempo de Duração (horas)', type: 'number', required: true, placeholder: '4', min: 0.1, step: 0.5 },
+  { key: 'pesoCarga', label: 'Peso da Carga (kg)', type: 'number', required: false, placeholder: '0', min: 0, step: 10 },
+]
+
+
 export const updateKeyMap = {
   cidades: 'idCidade',
   empresas: 'idEmpresa',

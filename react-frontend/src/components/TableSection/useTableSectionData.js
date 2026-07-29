@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { endpointMap, createFieldMap, updateKeyMap, formatLabel, getDeleteValue, getFieldConfig } from './TableSectionConfig'
+import { endpointMap, createFieldMap, updateKeyMap, formatLabel, getDeleteValue, getFieldConfig, pedidoServicoFields } from './TableSectionConfig'
 
 const API_BASE = 'http://localhost:5065'
 
@@ -13,8 +13,12 @@ export function useTableSectionData(sectionId) {
   const [createError, setCreateError] = useState(null)
   const [editError, setEditError] = useState(null)
 
+  const [addingServico, setAddingServico] = useState(false)
+  const [servicoError, setServicoError] = useState(null)
+
   const createFields = createFieldMap[sectionId] || []
   const updateEnabled = Boolean(updateKeyMap[sectionId])
+  const isPedidos = sectionId === 'pedidos'
 
   const initializeCreateData = () => {
     return createFields.reduce((acc, field) => {
@@ -27,6 +31,7 @@ export function useTableSectionData(sectionId) {
     setCreateData(initializeCreateData())
     setCreateError(null)
     setEditError(null)
+    setServicoError(null)
   }, [sectionId])
 
   const loadData = async () => {
@@ -65,6 +70,34 @@ export function useTableSectionData(sectionId) {
   useEffect(() => {
     loadData()
   }, [sectionId])
+
+  const handleAddServico = async (payload) => {
+    setServicoError(null)
+    setAddingServico(true)
+
+    try {
+      const res = await fetch(`${API_BASE}/api/Pedido/add-servico`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text || `Falha ao adicionar serviço (${res.status})`)
+      }
+
+      // Recarregar dados para mostrar o pedido atualizado
+      await loadData()
+      
+      return true
+    } catch (err) {
+      setServicoError(err.message || 'Erro ao adicionar serviço')
+      throw err
+    } finally {
+      setAddingServico(false)
+    }
+  }
 
   const handleCreate = async () => {
     const endpoint = endpointMap[sectionId]
@@ -194,5 +227,9 @@ export function useTableSectionData(sectionId) {
     onCreate: handleCreate,
     onDelete: handleDelete,
     onSave: updateEnabled ? handleSave : undefined,
+    isPedidos,
+    addingServico,
+    servicoError,
+    onAddServico: handleAddServico,
   }
 }
