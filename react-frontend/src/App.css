@@ -30,7 +30,8 @@ button {
 .app-shell {
   display: grid;
   grid-template-columns: 260px 1fr;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .sidebar {
@@ -40,6 +41,10 @@ button {
   display: flex;
   flex-direction: column;
   gap: 36px;
+  height: 100vh; 
+  overflow-y: auto; 
+  position: sticky; 
+  top: 0;
 }
 
 .sidebar-brand {
@@ -106,7 +111,8 @@ button {
 
 .app-content {
   padding: 32px;
-  min-height: 100vh;
+  height: 100vh; 
+  overflow-y: auto;
   background: var(--bg-light);
 }
 
@@ -174,6 +180,31 @@ button {
   line-height: 1.6;
 }
 
+.ranking-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ranking-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.ranking-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  font-size: 0.95rem;
+}
+
+.ranking-list strong {
+  color: var(--navy-blue);
+  white-space: nowrap;
+}
+
 .report-grid {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
@@ -198,6 +229,73 @@ button {
   place-items: center;
   color: var(--text-muted);
   font-weight: 600;
+}
+
+.chart-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.histogram-chart {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+  align-items: end;
+  min-height: 260px;
+}
+
+.histogram-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.histogram-bar-wrapper {
+  width: 100%;
+  min-height: 180px;
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 14px;
+  padding: 10px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border: 1px solid var(--border);
+}
+
+.histogram-bar {
+  width: 100%;
+  min-height: 8px;
+  background: linear-gradient(180deg, var(--orange) 0%, #ffb347 100%);
+  border-radius: 10px;
+  transition: height 0.3s ease;
+}
+
+.histogram-bar-accent {
+  background: linear-gradient(180deg, #2c7a7b 0%, #4fd1c5 100%);
+}
+
+.histogram-label {
+  color: var(--text-dark);
+  font-size: 0.9rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.histogram-value {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.chart-empty {
+  padding: 28px 20px;
+  border: 1px dashed var(--border);
+  border-radius: 18px;
+  color: var(--text-muted);
+  text-align: center;
 }
 
 .placeholder-panel {
