@@ -42,7 +42,7 @@ const views = {
   servicos: (
     <TableSection
       sectionId="servicos"
-      title="Servicos"
+      title="Serviços"
       description="Crie, edite e remova serviços no sistema."
     />
   ),
