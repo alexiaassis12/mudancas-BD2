@@ -26,6 +26,32 @@ Para clonar e executar este projeto em qualquer computador, é necessário ter a
    * Para clonar o repositório.
    * 🔗 [Download do Git](https://git-scm.com/downloads).
 
+## 🚀 Configuração do Frontend
+
+1. Acesse a pasta do frontend:
+
+```bash
+cd react-frontend
+```
+
+2. Instale as dependências do projeto:
+
+```bash
+npm install
+```
+
+3. Inicie a aplicação React:
+
+```bash
+npm run dev
+```
+
+> Caso o projeto utilize Create React App, utilize:
+>
+> ```bash
+> npm start
+> ```
+
 ---
 
 ## 🛠️ 1. Configuração do Banco de Dados (MySQL)
