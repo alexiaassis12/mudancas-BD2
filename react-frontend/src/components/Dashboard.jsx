@@ -18,17 +18,24 @@ function getAggregateValue(items, valueKey) {
   return items.reduce((sum, item) => sum + Number(item[valueKey] || 0), 0)
 }
 
+function lowercaseFirstLetter(str) {
+  if (!str) return str;
+  return str.charAt(0).toLowerCase() + str.slice(1);
+}
+
 function getTopItems(items, labelKey, valueKey, limit = 5) {
   if (!Array.isArray(items)) return []
 
-  return [...items]
-    .map((item) => ({
-      label: item[labelKey],
-      value: Number(item[valueKey] || 0),
-    }))
-    .filter((item) => item.label)
-    .sort((a, b) => b.value - a.value)
-    .slice(0, limit)
+  const sortedItems = [...items]
+                          .map((item) => ({
+                            label: item[lowercaseFirstLetter(labelKey)],
+                            value: Number(item[lowercaseFirstLetter(valueKey)] || 0),
+                          }))
+                          .filter((item) => item.label)
+                          .sort((a, b) => b.value - a.value)
+                          .slice(0, limit)
+
+  return sortedItems
 }
 
 function Dashboard() {
@@ -56,14 +63,13 @@ function Dashboard() {
             map[city] = (map[city] || 0) + count
           }
           servicosByCity = Object.keys(map).map((city) => ({ NomeCidade: city, TotalServicos: map[city] }))
-          // sort descending
           servicosByCity.sort((a, b) => b.TotalServicos - a.TotalServicos)
         }
 
         const topCidadesInvestimento = getTopItems(topCidadesValor, 'NomeCidade', 'ValorInvestido', 5)
-        const topCidadesServicosRanking = getTopItems(servicosByCity, 'NomeCidade', 'TotalServicos', 5)
         const topEmpresasServicosRanking = getTopItems(topEmpresasServicos, 'NomeEmpresa', 'TotalServicosSolicitados', 5)
         const topEmpresasGanhosRanking = getTopItems(topEmpresasValoresGanhos, 'NomeEmpresa', 'ValoresGanhos', 5)
+        const topCidadesServicosRanking = getTopItems(servicosByCity, 'NomeCidade', 'TotalServicos', 5)
 
         return (
           <section className="dashboard-view">
@@ -76,18 +82,6 @@ function Dashboard() {
                 </p>
               </div>
             </header>
-
-            {error && <p className="error-message">Erro: {error}</p>}
-            <div style={{ marginTop: 12, marginBottom: 12 }}>
-              <button type="button" onClick={() => setShowDebug((s) => !s)}>
-                {showDebug ? 'Ocultar dados brutos' : 'Mostrar dados brutos'}
-              </button>
-            </div>
-            {showDebug && (
-              <pre style={{ maxHeight: 260, overflow: 'auto', background: '#fff', padding: 12, borderRadius: 8 }}>
-                {JSON.stringify(debugResponses ?? { histogramaServicos, pagamentosPorCidade, topCidadesServicos, topCidadesValor, topEmpresasServicos }, null, 2)}
-              </pre>
-            )}
 
             <div className="cards-grid ranking-grid">
               <DashboardCard
