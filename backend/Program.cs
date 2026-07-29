@@ -10,12 +10,12 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// CORS: permitir chamadas do frontend em desenvolvimento (Vite default: http://localhost:5173)
+// CORS: permitir chamadas do frontend em desenvolvimento (Vite default: http://localhost:5173, mas pode usar outra porta)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://localhost:5175")
               .AllowAnyHeader()
               .AllowAnyMethod();
         // .AllowCredentials(); // habilite se precisar enviar cookies/autenticação
