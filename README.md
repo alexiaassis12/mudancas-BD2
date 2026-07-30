@@ -3,6 +3,8 @@
 Repositório oficial do projeto de Banco de Dados. Contém os scripts de criação do banco **MySQL** e a **API RESTful em C# (.NET 8)** para gerenciamento e relatórios.
 
 ---
+## 🔗 Link para acessar o repositório do Github
+* https://github.com/alexiaassis12/mudancas-BD2
 
 ## 📋 Pré-requisitos (O que instalar antes de rodar)
 
